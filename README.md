@@ -1,44 +1,26 @@
-# Mini Exchange
+# TickEngine
 
-A low-latency order matching engine written in C++, built to explore systems programming
-concepts used in real-world trading infrastructure.
+A C++ strategy engine for live trading Fubon Python API.
+Two-process design: Python adapter handles the broker SDK, C++ engine runs the
+strategy core. They communicate via ZMQ + JSON.
+
+## Why this project
+
+I want to run strategies I wrote during my quant research intern period on a
+C++ engine I built myself. The goal: let real strategy requirements drive the
+engine design, instead of designing in a vacuum.
 
 ## Architecture
 
-```
-Client → TCP → Server (epoll) → Session → Exchange (Matching Engine)
-                                    ↓
-                               ExecReport → Client
-```
+See [DESIGN.md](DESIGN.md) for the full design.
 
-- **Server**: Non-blocking I/O with Linux epoll, SessionFactory pattern to decouple
-  network layer from business logic
-- **Session**: Wire protocol parsing (length-prefix framing), separated wire types
-  from domain objects
-- **Exchange**: Price-time priority order book, supports New/Change/Cancel with
-  fill reports
+Short version: Python owns the broker connection. C++ owns the strategy, risk,
+and position tracking. They talk through ZMQ with JSON messages.
 
-## Build & Run
-
-Requires Linux (uses epoll). Tested with GCC on Docker.
+## Build
 
 ```bash
 make
-
-# Terminal 1 — server
-./exchange
-
-# Terminal 2 — client
-./exchange client
-# Input format: <symbol> <type> <orderId> <price> <qty> <side>
-# Example: AAPL N 1 100 10 B
 ```
 
-## Roadmap
-
-- [ ] Lock-free MPSC queue (LMAX Disruptor pattern)
-- [ ] Latency histogram (HdrHistogram)
-- [ ] Async logger (spdlog)
-- [ ] Unit tests (GoogleTest)
-- [ ] Market data publisher
-- [ ] FIX protocol gateway
+Requires Linux. CMake-based — see `CMakeLists.txt` for details.
