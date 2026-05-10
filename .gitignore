@@ -1,6 +1,5 @@
 build
-idea/
-notes/
+docs/
 claude.md
 .claude
 .vscode

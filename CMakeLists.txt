@@ -1,7 +1,46 @@
 cmake_minimum_required(VERSION 3.14)
-project(mini_exchange)
+project(tickengine CXX)
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
+# ----- Build types ---------------------------------------------------------
+# Default to Debug if user did not specify
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Debug CACHE STRING
+        "Build type: Debug | RelWithDebInfo | Release | ASan | UBSan | TSan" FORCE)
+endif()
+
+# Custom sanitizer build types (ASan + TSan are mutually exclusive — separate types)
+set(CMAKE_CXX_FLAGS_ASAN
+    "-O1 -g -fno-omit-frame-pointer -fsanitize=address -fsanitize=undefined"
+    CACHE STRING "" FORCE)
+set(CMAKE_EXE_LINKER_FLAGS_ASAN
+    "-fsanitize=address -fsanitize=undefined"
+    CACHE STRING "" FORCE)
+
+set(CMAKE_CXX_FLAGS_UBSAN
+    "-O1 -g -fno-omit-frame-pointer -fsanitize=undefined"
+    CACHE STRING "" FORCE)
+set(CMAKE_EXE_LINKER_FLAGS_UBSAN
+    "-fsanitize=undefined"
+    CACHE STRING "" FORCE)
+
+set(CMAKE_CXX_FLAGS_TSAN
+    "-O1 -g -fno-omit-frame-pointer -fsanitize=thread"
+    CACHE STRING "" FORCE)
+set(CMAKE_EXE_LINKER_FLAGS_TSAN
+    "-fsanitize=thread"
+    CACHE STRING "" FORCE)
+
+mark_as_advanced(
+    CMAKE_CXX_FLAGS_ASAN  CMAKE_EXE_LINKER_FLAGS_ASAN
+    CMAKE_CXX_FLAGS_UBSAN CMAKE_EXE_LINKER_FLAGS_UBSAN
+    CMAKE_CXX_FLAGS_TSAN  CMAKE_EXE_LINKER_FLAGS_TSAN)
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/out)
+
+# ----- Dependencies --------------------------------------------------------
 include(FetchContent)
 FetchContent_Declare(
     hdr_histogram
@@ -12,59 +51,6 @@ set(HDR_HISTOGRAM_BUILD_PROGRAMS OFF CACHE BOOL "" FORCE)
 set(HDR_LOG_REQUIRED OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(hdr_histogram)
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/out)
-
-# Debug build flags
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    add_compile_options(
-        -fsanitize=address
-        -fsanitize=undefined
-        -fno-omit-frame-pointer  # ← 為了 stack trace 漂亮
-        -g
-    )
-    add_link_options(
-        -fsanitize=address
-        -fsanitize=undefined
-    )
-endif()
-
-set(EXCHANGE_SOURCES
-    src/engine/Exchange.cpp
-    src/engine/Order.cpp
-    src/engine/OrderBook.cpp
-)
-
-set(NETWORK_SOURCES
-    src/network/Client.cpp
-    src/network/Server.cpp
-    src/network/Session.cpp
-)
-
-add_executable(exchange
-    src/main.cpp
-    src/main.cpp
-    ${EXCHANGE_SOURCES}
-    ${NETWORK_SOURCES}
-)
-
-add_executable(test_exchange
-    test/exchange_test.cpp
-    ${EXCHANGE_SOURCES}
-)
-
-target_link_libraries(exchange hdr_histogram_static)
-target_include_directories(exchange PRIVATE 
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${hdr_histogram_SOURCE_DIR}/include)
-
-target_link_libraries(test_exchange hdr_histogram_static)
-target_include_directories(test_exchange PRIVATE 
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${hdr_histogram_SOURCE_DIR}/include)
-
-find_package(GTest QUIET)
-if(GTest_FOUND)
-    target_link_libraries(test_exchange GTest::GTest GTest::Main)
-else()
-    message(STATUS "GTest not found — skipping test_exchange")
-endif()
+# ----- Targets (to be added as the strategy engine is built) --------------
+# src/tools/ is header-only utilities (Timestamp, LatencyRecorder)
+# Future targets will be added here as they're implemented.
