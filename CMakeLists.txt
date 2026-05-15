@@ -51,6 +51,26 @@ set(HDR_HISTOGRAM_BUILD_PROGRAMS OFF CACHE BOOL "" FORCE)
 set(HDR_LOG_REQUIRED OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(hdr_histogram)
 
-# ----- Targets (to be added as the strategy engine is built) --------------
-# src/tools/ is header-only utilities (Timestamp, LatencyRecorder)
-# Future targets will be added here as they're implemented.
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(ZMQ REQUIRED IMPORTED_TARGET libzmq)
+
+FetchContent_Declare(
+    cppzmq
+    GIT_REPOSITORY https://github.com/zeromq/cppzmq.git
+    GIT_TAG        v4.10.0
+)
+set(CPPZMQ_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(cppzmq)
+
+FetchContent_Declare(
+    nlohmann_json
+    GIT_REPOSITORY https://github.com/nlohmann/json.git
+    GIT_TAG        v3.11.3
+)
+set(JSON_BuildTests OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(nlohmann_json)
+
+# ----- Targets ------------------------------------------------------------
+add_executable(bridge_demo src/bridge/main.cc)
+target_link_libraries(bridge_demo PRIVATE cppzmq nlohmann_json::nlohmann_json)
+target_include_directories(bridge_demo PRIVATE src)
